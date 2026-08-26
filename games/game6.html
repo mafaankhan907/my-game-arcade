@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Jenga - Game 6</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+        font-family: Arial, sans-serif;
+        user-select: none;
+    }
+
+    #ui {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 10;
+        color: white;
+        background: rgba(0,0,0,0.65);
+        padding: 14px 18px;
+        border-radius: 12px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    }
+
+    #ui h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+    }
+
+    #ui p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+
+    #score {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    #restart {
+        margin-top: 10px;
+        border: none;
+        padding: 9px 15px;
+        border-radius: 8px;
+        background: #ffb52e;
+        color: #111;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    #restart:hover {
+        background: #ffd166;
+    }
+
+    #message {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 20;
+        display: none;
+        text-align: center;
+        color: white;
+        background: rgba(0,0,0,0.85);
+        padding: 30px 45px;
+        border-radius: 18px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    #message h2 {
+        margin-top: 0;
+        font-size: 36px;
+    }
+
+    #message button {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 10px;
+        background: #ffb52e;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 22px;
+        height: 22px;
+        z-index: 8;
+        pointer-events: none;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+        content: "";
+        position: absolute;
+        background: white;
+        box-shadow: 0 0 4px black;
+    }
+
+    #crosshair::before {
+        width: 2px;
+        height: 22px;
+        left: 10px;
+        top: 0;
+    }
+
+    #crosshair::after {
+        width: 22px;
+        height: 2px;
+        left: 0;
+        top: 10px;
+    }
+
+    #help {
+        position: fixed;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        background: rgba(0,0,0,0.65);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        text-align: center;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+    <h1>🧱 3D Jenga</h1>
+    <p id="score">Blocks removed: 0</p>
+    <p>Layer: <span id="layer">1</span></p>
+    <button id="restart">Restart Game</button>
+</div>
+
+<div id="crosshair"></div>
+
+<div id="help">
+    🖱️ Drag = rotate camera &nbsp; | &nbsp;
+    🖱️ Click block = remove &nbsp; | &nbsp;
+    Wheel = zoom
+</div>
+
+<div id="message">
+    <h2>💥 TOWER FELL!</h2>
+    <p id="finalScore"></p>
+    <button id="playAgain">Play Again</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+/* =========================================================
+   3D JENGA - GAME 6
+   ========================================================= */
+
+let scene;
+let camera;
+let renderer;
+
+let blocks = [];
+let selectedBlock = null;
+
+let removedCount = 0;
+let currentLayer = 1;
+
+let gameOver = false;
+
+let mouseDown = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+let cameraAngle = 0;
+let cameraPitch = 0.25;
+let cameraDistance = 14;
+
+let raycaster;
+let mouse;
+
+const BLOCK_LENGTH = 3.6;
+const BLOCK_WIDTH = 1.15;
+const BLOCK_HEIGHT = 0.55;
+
+const LAYER_GAP = 0.04;
+
+const COLORS = [
+    0xb86b32,
+    0xc47a3b,
+    0xa95e2b,
+    0xd18a4b,
+    0x9d5528
+];
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+function init() {
+
+    scene = new THREE.Scene();
+
+    scene.background = new THREE.Color(0x8fc9ff);
+
+    scene.fog = new THREE.Fog(0x8fc9ff, 18, 45);
+
+
+    camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100
+    );
+
+
+    renderer = new THREE.WebGLRenderer({
+        antialias: true
+    });
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.shadowMap.enabled = true;
+
+    renderer.shadowMap.type =
+        THREE.PCFSoftShadowMap;
+
+    document.body.appendChild(renderer.domElement);
+
+
+    raycaster = new THREE.Raycaster();
+
+    mouse = new THREE.Vector2();
+
+
+    createLights();
+
+    createGround();
+
+    createEnvironment();
+
+    createTower();
+
+    updateCamera();
+
+    setupControls();
+
+    animate();
+}
+
+
+/* =========================================================
+   LIGHTS
+   ========================================================= */
+
+function createLights() {
+
+    const ambient = new THREE.HemisphereLight(
+        0xffffff,
+        0x555555,
+        1.5
+    );
+
+    scene.add(ambient);
+
+
+    const sun = new THREE.DirectionalLight(
+        0xffffff,
+        2
+    );
+
+    sun.position.set(
+        8,
+        15,
+        8
+    );
+
+    sun.castShadow = true;
+
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+
+    sun.shadow.camera.left = -20;
+    sun.shadow.camera.right = 20;
+    sun.shadow.camera.top = 20;
+    sun.shadow.camera.bottom = -20;
+
+    scene.add(sun);
+}
+
+
+/* =========================================================
+   GROUND
+   ========================================================= */
+
+function createGround() {
+
+    const groundGeometry =
+        new THREE.PlaneGeometry(60, 60);
+
+    const groundMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x596b4b,
+            roughness: 0.9
+        });
+
+    const ground =
+        new THREE.Mesh(
+            groundGeometry,
+            groundMaterial
+        );
+
+    ground.rotation.x = -Math.PI / 2;
+
+    ground.receiveShadow = true;
+
+    scene.add(ground);
+
+
+    const platformGeometry =
+        new THREE.CylinderGeometry(
+            5.2,
+            5.2,
+            0.5,
+            48
+        );
+
+    const platformMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            roughness: 0.75
+        });
+
+    const platform =
+        new THREE.Mesh(
+            platformGeometry,
+            platformMaterial
+        );
+
+    platform.position.y = 0.25;
+
+    platform.receiveShadow = true;
+    platform.castShadow = true;
+
+    scene.add(platform);
+}
+
+
+/* =========================================================
+   ENVIRONMENT
+   ========================================================= */
+
+function createEnvironment() {
+
+    // Trees
+    for (let i = 0; i < 12; i++) {
+
+        const angle =
+            Math.random() * Math.PI * 2;
+
+        const distance =
+            12 + Math.random() * 8;
+
+        const x =
+            Math.cos(angle) * distance;
+
+        const z =
+            Math.sin(angle) * distance;
+
+        createTree(x, z);
+    }
+
+
+    // Clouds
+    for (let i = 0; i < 8; i++) {
+
+        const cloud =
+            new THREE.Group();
+
+        for (let j = 0; j < 4; j++) {
+
+            const geo =
+                new THREE.SphereGeometry(
+                    1.3 + Math.random() * 0.7,
+                    16,
+                    16
+                );
+
+            const mat =
+                new THREE.MeshStandardMaterial({
+                    color: 0xffffff
+                });
+
+            const part =
+                new THREE.Mesh(geo, mat);
+
+            part.position.x =
+                j * 1.2;
+
+            part.position.y =
+                Math.random() * 0.6;
+
+            cloud.add(part);
+        }
+
+        cloud.position.set(
+            -20 + Math.random() * 40,
+            13 + Math.random() * 5,
+            -15 + Math.random() * 20
+        );
+
+        cloud.scale.setScalar(
+            0.7 + Math.random() * 0.8
+        );
+
+        scene.add(cloud);
+    }
+}
+
+
+function createTree(x, z) {
+
+    const tree = new THREE.Group();
+
+
+    const trunk =
+        new THREE.Mesh(
+            new THREE.CylinderGeometry(
+                0.25,
+                0.35,
+                2.2,
+                10
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x6d4426
+            })
+        );
+
+    trunk.position.y = 1.1;
+
+    trunk.castShadow = true;
+
+    tree.add(trunk);
+
+
+    const leaves =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                1.5,
+                16,
+                16
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x287a38
+            })
+        );
+
+    leaves.position.y = 2.8;
+
+    leaves.castShadow = true;
+
+    tree.add(leaves);
+
+
+    tree.position.set(x, 0, z);
+
+    scene.add(tree);
+}
+
+
+/* =========================================================
+   CREATE JENGA TOWER
+   ========================================================= */
+
+function createTower() {
+
+    blocks = [];
+
+    const totalLayers = 12;
+
+    for (let layer = 0; layer < totalLayers; layer++) {
+
+        const direction =
+            layer % 2 === 0 ? 0 : Math.PI / 2;
+
+        for (let i = 0; i < 3; i++) {
+
+            const block =
+                createBlock(
+                    layer,
+                    i,
+                    direction
+                );
+
+            blocks.push(block);
+
+            scene.add(block);
+        }
+    }
+
+    currentLayer = totalLayers;
+    updateUI();
+}
+
+
+/* =========================================================
+   CREATE BLOCK
+   ========================================================= */
+
+function createBlock(layer, index, rotation) {
+
+    const geometry =
+        new THREE.BoxGeometry(
+            BLOCK_LENGTH,
+            BLOCK_HEIGHT,
+            BLOCK_WIDTH
+        );
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color:
+                COLORS[
+                    Math.floor(
+                        Math.random() *
+                        COLORS.length
+                    )
+                ],
+            roughness: 0.75
+        });
+
+    const block =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    const spacing =
+        BLOCK_WIDTH + 0.04;
+
+    const offset =
+        (index - 1) * spacing;
+
+
+    if (rotation === 0) {
+
+        block.position.x = offset;
+        block.position.z = 0;
+
+    } else {
+
+        block.position.x = 0;
+        block.position.z = offset;
+    }
+
+
+    block.position.y =
+        0.5 +
+        BLOCK_HEIGHT / 2 +
+        layer *
+        (BLOCK_HEIGHT + LAYER_GAP);
+
+
+    block.rotation.y = rotation;
+
+
+    block.castShadow = true;
+    block.receiveShadow = true;
+
+
+    block.userData = {
+
+        layer: layer,
+
+        removed: false,
+
+        velocity: new THREE.Vector3(),
+
+        angularVelocity:
+            new THREE.Vector3(),
+
+        falling: false,
+
+        originalPosition:
+            block.position.clone(),
+
+        originalRotation:
+            block.rotation.clone()
+    };
+
+
+    return block;
+}
+
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+function setupControls() {
+
+    renderer.domElement.addEventListener(
+        "mousedown",
+        onMouseDown
+    );
+
+    window.addEventListener(
+        "mousemove",
+        onMouseMove
+    );
+
+    window.addEventListener(
+        "mouseup",
+        onMouseUp
+    );
+
+    renderer.domElement.addEventListener(
+        "wheel",
+        onWheel,
+        { passive: true }
+    );
+
+    renderer.domElement.addEventListener(
+        "click",
+        onClick
+    );
+
+
+    window.addEventListener(
+        "resize",
+        onResize
+    );
+
+
+    document
+        .getElementById("restart")
+        .addEventListener(
+            "click",
+            restartGame
+        );
+
+
+    document
+        .getElementById("playAgain")
+        .addEventListener(
+            "click",
+            restartGame
+        );
+}
+
+
+function onMouseDown(event) {
+
+    mouseDown = true;
+
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+}
+
+
+function onMouseMove(event) {
+
+    if (!mouseDown) return;
+
+    const dx =
+        event.clientX - lastMouseX;
+
+    const dy =
+        event.clientY - lastMouseY;
+
+
+    cameraAngle -= dx * 0.008;
+
+    cameraPitch += dy * 0.006;
+
+    cameraPitch =
+        Math.max(
+            -0.2,
+            Math.min(
+                1.1,
+                cameraPitch
+            )
+        );
+
+
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+
+    updateCamera();
+}
+
+
+function onMouseUp() {
+
+    mouseDown = false;
+}
+
+
+function onWheel(event) {
+
+    cameraDistance +=
+        event.deltaY * 0.01;
+
+    cameraDistance =
+        Math.max(
+            7,
+            Math.min(
+                25,
+                cameraDistance
+            )
+        );
+
+    updateCamera();
+}
+
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+
+function updateCamera() {
+
+    const towerHeight =
+        0.5 +
+        12 *
+        (BLOCK_HEIGHT + LAYER_GAP);
+
+
+    const target =
+        new THREE.Vector3(
+            0,
+            towerHeight / 2,
+            0
+        );
+
+
+    const x =
+        Math.sin(cameraAngle) *
+        cameraDistance;
+
+    const z =
+        Math.cos(cameraAngle) *
+        cameraDistance;
+
+    const y =
+        towerHeight / 2 +
+        cameraPitch * 8;
+
+
+    camera.position.set(
+        x,
+        y,
+        z
+    );
+
+    camera.lookAt(target);
+}
+
+
+/* =========================================================
+   CLICK BLOCK
+   ========================================================= */
+
+function onClick(event) {
+
+    if (gameOver) return;
+
+    // Don't select if dragging camera
+    if (Math.abs(
+        event.clientX - lastMouseX
+    ) > 5) {
+        return;
+    }
+
+
+    mouse.x =
+        (event.clientX /
+            window.innerWidth) *
+        2 - 1;
+
+    mouse.y =
+        -(event.clientY /
+            window.innerHeight) *
+        2 + 1;
+
+
+    raycaster.setFromCamera(
+        mouse,
+        camera
+    );
+
+
+    const intersects =
+        raycaster.intersectObjects(
+            blocks.filter(
+                b => !b.userData.removed
+            )
+        );
+
+
+    if (intersects.length === 0)
+        return;
+
+
+    const block =
+        intersects[0].object;
+
+
+    removeBlock(block);
+}
+
+
+/* =========================================================
+   REMOVE BLOCK
+   ========================================================= */
+
+function removeBlock(block) {
+
+    if (
+        block.userData.removed ||
+        block.userData.falling
+    ) {
+        return;
+    }
+
+
+    const layer =
+        block.userData.layer;
+
+
+    // Don't allow taking from top layer
+    if (layer >= 11) {
+
+        showMessage(
+            "You can't remove the top layer yet!"
+        );
+
+        setTimeout(
+            hideMessage,
+            1200
+        );
+
+        return;
+    }
+
+
+    block.userData.removed = true;
+
+
+    // Add falling movement
+    block.userData.falling = true;
+
+    block.userData.velocity.set(
+        (Math.random() - 0.5) * 2,
+        1.5 + Math.random(),
+        (Math.random() - 0.5) * 2
+    );
+
+    block.userData.angularVelocity.set(
+        Math.random() * 0.08,
+        Math.random() * 0.08,
+        Math.random() * 0.08
+    );
+
+
+    removedCount++;
+
+    currentLayer++;
+
+    updateUI();
+
+
+    // After a short time create a new block on top
+    setTimeout(
+        () => placeBlockOnTop(block),
+        450
+    );
+
+
+    // Make the tower shake
+    shakeTower();
+
+
+    checkTower();
+}
+
+
+/* =========================================================
+   PLACE BLOCK ON TOP
+   ========================================================= */
+
+function placeBlockOnTop(oldBlock) {
+
+    if (gameOver) return;
+
+
+    const newLayer =
+        currentLayer;
+
+
+    const direction =
+        newLayer % 2 === 0
+            ? 0
+            : Math.PI / 2;
+
+
+    const newBlock =
+        createBlock(
+            newLayer,
+            Math.floor(
+                Math.random() * 3
+            ),
+            direction
+        );
+
+
+    // Start above tower
+    newBlock.position.y += 5;
+
+    newBlock.userData.falling = true;
+
+    newBlock.userData.velocity =
+        new THREE.Vector3(
+            0,
+            -0.08,
+            0
+        );
+
+
+    scene.add(newBlock);
+
+    blocks.push(newBlock);
+
+
+    // Animate dropping onto tower
+    const targetY =
+        0.5 +
+        BLOCK_HEIGHT / 2 +
+        newLayer *
+        (BLOCK_HEIGHT + LAYER_GAP);
+
+
+    const dropInterval =
+        setInterval(() => {
+
+            if (gameOver) {
+
+                clearInterval(dropInterval);
+
+                return;
+            }
+
+
+            newBlock.position.y -= 0.08;
+
+
+            if (
+                newBlock.position.y <=
+                targetY
+            ) {
+
+                newBlock.position.y =
+                    targetY;
+
+                newBlock.userData.falling =
+                    false;
+
+                clearInterval(
+                    dropInterval
+                );
+            }
+
+        }, 16);
+}
+
+
+/* =========================================================
+   TOWER SHAKE
+   ========================================================= */
+
+function shakeTower() {
+
+    for (const block of blocks) {
+
+        if (
+            block.userData.removed ||
+            block.userData.falling
+        ) {
+            continue;
+        }
+
+
+        const amount =
+            0.025 *
+            Math.max(
+                0,
+                1 -
+                block.userData.layer /
+                14
+            );
+
+
+        block.userData.velocity.x +=
+            (Math.random() - 0.5) *
+            amount;
+
+        block.userData.velocity.z +=
+            (Math.random() - 0.5) *
+            amount;
+    }
+}
+
+
+/* =========================================================
+   PHYSICS
+   ========================================================= */
+
+function updatePhysics() {
+
+    for (const block of blocks) {
+
+        if (!block.userData.falling)
+            continue;
+
+
+        block.userData.velocity.y -=
+            0.012;
+
+
+        block.position.add(
+            block.userData.velocity
+        );
+
+
+        block.rotation.x +=
+            block.userData.angularVelocity.x;
+
+        block.rotation.y +=
+            block.userData.angularVelocity.y;
+
+        block.rotation.z +=
+            block.userData.angularVelocity.z;
+
+
+        // Ground collision
+        if (
+            block.position.y < 0.5
+        ) {
+
+            block.position.y = 0.5;
+
+            block.userData.velocity.y *=
+                -0.35;
+
+            block.userData.velocity.x *=
+                0.85;
+
+            block.userData.velocity.z *=
+                0.85;
+
+            block.userData.angularVelocity
+                .multiplyScalar(0.8);
+
+
+            if (
+                Math.abs(
+                    block.userData.velocity.y
+                ) < 0.03
+            ) {
+
+                block.userData.falling =
+                    false;
+            }
+        }
+    }
+}
+
+
+/* =========================================================
+   CHECK IF TOWER FELL
+   ========================================================= */
+
+function checkTower() {
+
+    setTimeout(() => {
+
+        if (gameOver) return;
+
+
+        let unstable = false;
+
+
+        for (const block of blocks) {
+
+            if (
+                block.userData.removed ||
+                block.userData.falling
+            ) {
+                continue;
+            }
+
+
+            const rotationAmount =
+                Math.abs(block.rotation.x) +
+                Math.abs(block.rotation.z);
+
+
+            const distance =
+                Math.sqrt(
+                    block.position.x *
+                    block.position.x +
+                    block.position.z *
+                    block.position.z
+                );
+
+
+            if (
+                rotationAmount > 0.9 ||
+                distance > 2.8
+            ) {
+
+                unstable = true;
+
+                break;
+            }
+        }
+
+
+        // Random chance gets slightly higher
+        // as the tower gets taller
+        const chance =
+            0.015 +
+            removedCount * 0.006;
+
+
+        if (
+            unstable ||
+            Math.random() < chance
+        ) {
+
+            collapseTower();
+        }
+
+    }, 300);
+}
+
+
+/* =========================================================
+   COLLAPSE
+   ========================================================= */
+
+function collapseTower() {
+
+    if (gameOver) return;
+
+    gameOver = true;
+
+
+    for (const block of blocks) {
+
+        if (block.userData.removed)
+            continue;
+
+
+        block.userData.falling = true;
+
+
+        block.userData.velocity.set(
+            (Math.random() - 0.5) * 0.12,
+            Math.random() * 0.08,
+            (Math.random() - 0.5) * 0.12
+        );
+
+
+        block.userData.angularVelocity.set(
+            (Math.random() - 0.5) * 0.08,
+            (Math.random() - 0.5) * 0.08,
+            (Math.random() - 0.5) * 0.08
+        );
+    }
+
+
+    setTimeout(() => {
+
+        document.getElementById(
+            "finalScore"
+        ).textContent =
+            "You removed " +
+            removedCount +
+            " blocks!";
+
+        document.getElementById(
+            "message"
+        ).style.display = "block";
+
+    }, 1800);
+}
+
+
+/* =========================================================
+   UI
+   ========================================================= */
+
+function updateUI() {
+
+    document.getElementById(
+        "score"
+    ).textContent =
+        "Blocks removed: " +
+        removedCount;
+
+
+    document.getElementById(
+        "layer"
+    ).textContent =
+        currentLayer;
+}
+
+
+/* =========================================================
+   MESSAGE
+   ========================================================= */
+
+function showMessage(text) {
+
+    const box =
+        document.getElementById(
+            "message"
+        );
+
+    box.querySelector("h2")
+        .textContent = text;
+
+    box.querySelector("p")
+        .textContent = "";
+
+    box.style.display = "block";
+}
+
+
+function hideMessage() {
+
+    document.getElementById(
+        "message"
+    ).style.display = "none";
+}
+
+
+/* =========================================================
+   RESTART
+   ========================================================= */
+
+function restartGame() {
+
+    gameOver = false;
+
+    removedCount = 0;
+
+    currentLayer = 1;
+
+
+    hideMessage();
+
+
+    // Remove old blocks
+    for (const block of blocks) {
+
+        scene.remove(block);
+
+        if (block.geometry)
+            block.geometry.dispose();
+
+        if (block.material)
+            block.material.dispose();
+    }
+
+
+    blocks = [];
+
+
+    createTower();
+
+    updateCamera();
+
+    updateUI();
+}
+
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+
+function onResize() {
+
+    camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+}
+
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+const clock =
+    new THREE.Clock();
+
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const time =
+        clock.getElapsedTime();
+
+
+    updatePhysics();
+
+
+    // Slight floating animation for clouds
+    scene.traverse(object => {
+
+        if (
+            object.type === "Group" &&
+            object.children.length === 4
+        ) {
+
+            object.position.x +=
+                0.0015;
+        }
+    });
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+init();
+
+</script>
+
+</body>
+</html>
