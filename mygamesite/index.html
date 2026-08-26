@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Game Arcade</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background:
+                radial-gradient(circle at top, #243b55, #101522 60%, #080b12);
+            color: white;
+        }
+
+        header {
+            text-align: center;
+            padding: 45px 20px 25px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 52px;
+            text-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+
+        header p {
+            color: #b9c4d6;
+            font-size: 18px;
+        }
+
+        .games {
+            width: min(1100px, 92%);
+            margin: 25px auto 50px;
+
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(240px, 1fr));
+
+            gap: 22px;
+        }
+
+        .game {
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: center;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.3);
+
+            transition:
+                transform 0.2s,
+                background 0.2s;
+        }
+
+        .game:hover {
+            transform: translateY(-7px);
+            background: rgba(255,255,255,0.14);
+        }
+
+        .icon {
+            font-size: 65px;
+            margin-bottom: 10px;
+        }
+
+        .game h2 {
+            margin: 8px 0;
+            font-size: 25px;
+        }
+
+        .game p {
+            min-height: 45px;
+            color: #b9c4d6;
+        }
+
+        .play {
+            display: inline-block;
+
+            padding: 12px 28px;
+
+            border-radius: 10px;
+
+            background: #ffb52e;
+            color: #111;
+
+            text-decoration: none;
+
+            font-weight: bold;
+            font-size: 17px;
+
+            transition: 0.2s;
+        }
+
+        .play:hover {
+            transform: scale(1.05);
+            background: #ffd166;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #8995a8;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🎮 My Game Arcade</h1>
+    <p>Choose a game and start playing!</p>
+</header>
+
+
+<main class="games">
+
+    <!-- GAME 1 -->
+    <div class="game">
+        <div class="icon">🚗</div>
+
+        <h2>Game 1</h2>
+
+        <p>
+            Drive around and explore the world.
+        </p>
+
+        <a class="play" href="game1.html">
+            PLAY
+        </a>
+    </div>
+
+
+    <!-- GAME 2 -->
+    <div class="game">
+        <div class="icon">🏎️</div>
+
+        <h2>Game 2</h2>
+
+        <p>
+            Race your way to victory.
+        </p>
+
+        <a class="play" href="game2.html">
+            PLAY
+        </a>
+    </div>
+
+
+    <!-- GAME 3 -->
+    <div class="game">
+        <div class="icon">🌆</div>
+
+        <h2>Game 3</h2>
+
+        <p>
+            Explore the city and have fun.
+        </p>
+
+        <a class="play" href="game3.html">
+            PLAY
+        </a>
+    </div>
+
+
+    <!-- GAME 4 -->
+    <div class="game">
+        <div class="icon">🎯</div>
+
+        <h2>Game 4</h2>
+
+        <p>
+            Enter the action and battle enemies.
+        </p>
+
+        <a class="play" href="game4.html">
+            PLAY
+        </a>
+    </div>
+
+
+    <!-- GAME 5 -->
+    <div class="game">
+        <div class="icon">👥</div>
+
+        <h2>Game 5</h2>
+
+        <p>
+            Play a 2-player 3D battle.
+        </p>
+
+        <a class="play" href="game5.html">
+            PLAY
+        </a>
+    </div>
+
+
+    <!-- GAME 6 -->
+    <div class="game">
+        <div class="icon">🧱</div>
+
+        <h2>Game 6</h2>
+
+        <p>
+            Play the 3D Jenga challenge.
+        </p>
+
+        <a class="play" href="game6.html">
+            PLAY
+        </a>
+    </div>
+
+</main>
+
+
+<footer>
+    My Game Arcade © 2026
+</footer>
+
+</body>
+</html>

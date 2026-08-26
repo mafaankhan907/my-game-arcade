@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodge the Blocks</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 15px;
+        }
+
+        #game {
+            width: 400px;
+            height: 600px;
+            background: #222;
+            border: 3px solid white;
+            margin: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #player {
+            width: 50px;
+            height: 50px;
+            background: dodgerblue;
+            position: absolute;
+            bottom: 20px;
+            left: 175px;
+            border-radius: 8px;
+        }
+
+        .block {
+            width: 50px;
+            height: 50px;
+            background: red;
+            position: absolute;
+            top: -50px;
+            border-radius: 8px;
+        }
+
+        #score {
+            font-size: 24px;
+            margin: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎮 Dodge the Blocks</h1>
+
+    <div id="score">Score: 0</div>
+
+    <div id="game">
+        <div id="player"></div>
+    </div>
+
+    <br>
+
+    <button onclick="startGame()">Start Game</button>
+
+    <script>
+        const player = document.getElementById("player");
+        const game = document.getElementById("game");
+        const scoreText = document.getElementById("score");
+
+        let playerX = 175;
+        let score = 0;
+        let gameRunning = false;
+        let blocks = [];
+
+        document.addEventListener("keydown", function(event) {
+
+            if (!gameRunning) return;
+
+            if (event.key === "ArrowLeft" && playerX > 0) {
+                playerX -= 20;
+            }
+
+            if (event.key === "ArrowRight" && playerX < 350) {
+                playerX += 20;
+            }
+
+            player.style.left = playerX + "px";
+        });
+
+        function startGame() {
+
+            if (gameRunning) return;
+
+            gameRunning = true;
+            score = 0;
+            playerX = 175;
+
+            player.style.left = playerX + "px";
+            scoreText.textContent = "Score: 0";
+
+            blocks.forEach(block => block.remove());
+            blocks = [];
+
+            createBlock();
+            gameLoop();
+        }
+
+        function createBlock() {
+
+            if (!gameRunning) return;
+
+            const block = document.createElement("div");
+
+            block.classList.add("block");
+
+            block.style.left = Math.floor(Math.random() * 350) + "px";
+            block.style.top = "-50px";
+
+            game.appendChild(block);
+            blocks.push(block);
+
+            setTimeout(createBlock, 900);
+        }
+
+        function gameLoop() {
+
+            if (!gameRunning) return;
+
+            blocks.forEach((block, index) => {
+
+                let top = parseInt(block.style.top);
+
+                top += 5;
+
+                block.style.top = top + "px";
+
+                const blockX = parseInt(block.style.left);
+
+                if (
+                    top + 50 >= 530 &&
+                    top <= 580 &&
+                    blockX < playerX + 50 &&
+                    blockX + 50 > playerX
+                ) {
+                    gameOver();
+                }
+
+                if (top > 600) {
+
+                    block.remove();
+
+                    blocks.splice(index, 1);
+
+                    score++;
+
+                    scoreText.textContent = "Score: " + score;
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+
+            gameRunning = false;
+
+            alert("Game Over! Your score was " + score);
+        }
+    </script>
+
+</body>
+</html>
