@@ -1,1 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Poison Drinks - 2 Player</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #111827, #312e81);
+        color: white;
+        text-align: center;
+        overflow-x: hidden;
+    }
+
+    .game {
+        max-width: 1100px;
+        margin: auto;
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: clamp(30px, 6vw, 55px);
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #cbd5e1;
+        margin-bottom: 20px;
+    }
+
+    .players {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .player {
+        background: rgba(255,255,255,0.1);
+        border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 18px;
+        padding: 15px;
+        width: 280px;
+        transition: 0.3s;
+    }
+
+    .player.active {
+        border-color: #facc15;
+        box-shadow: 0 0 25px rgba(250,204,21,0.5);
+        transform: scale(1.03);
+    }
+
+    .player.dead {
+        opacity: 0.5;
+    }
+
+    .health-bar {
+        width: 100%;
+        height: 22px;
+        background: #1f2937;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+
+    .health {
+        height: 100%;
+        width: 100%;
+        background: #22c55e;
+        transition: 0.4s;
+    }
+
+    .health-text {
+        margin-top: 7px;
+        font-weight: bold;
+    }
+
+    #turnText {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 20px 0;
+        color: #facc15;
+    }
+
+    .drinks {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
+        max-width: 900px;
+        margin: auto;
+    }
+
+    .drink {
+        height: 150px;
+        border: none;
+        border-radius: 20px;
+        background: linear-gradient(145deg, #f8fafc, #cbd5e1);
+        cursor: pointer;
+        font-size: 55px;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+        transition: 0.2s;
+        position: relative;
+    }
+
+    .drink:hover {
+        transform: translateY(-7px) scale(1.03);
+    }
+
+    .drink:active {
+        transform: scale(0.95);
+    }
+
+    .drink.used {
+        cursor: not-allowed;
+        opacity: 0.35;
+        transform: none;
+    }
+
+    .drink-number {
+        position: absolute;
+        top: 8px;
+        left: 10px;
+        font-size: 15px;
+        color: #111827;
+        font-weight: bold;
+    }
+
+    .status {
+        margin-top: 20px;
+        min-height: 35px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    #restart {
+        display: none;
+        margin: 25px auto;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 12px;
+        background: #22c55e;
+        color: white;
+        font-size: 20px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    #restart:hover {
+        background: #16a34a;
+    }
+
+    .rules {
+        margin: 25px auto;
+        max-width: 700px;
+        padding: 15px;
+        border-radius: 15px;
+        background: rgba(0,0,0,0.25);
+        color: #dbeafe;
+    }
+
+    @media (max-width: 700px) {
+        .drinks {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .drink {
+            height: 130px;
+            font-size: 48px;
+        }
+
+        .player {
+            width: 100%;
+        }
+    }
+
+    @media (min-width: 701px) and (max-width: 900px) {
+        .drinks {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+    <h1>🥤 Poison Drinks</h1>
+
+    <p class="subtitle">
+        2 Player Survival Game
+    </p>
+
+    <div class="players">
+
+        <div class="player active" id="player1">
+            <h2>🔵 Player 1</h2>
+
+            <div class="health-bar">
+                <div class="health" id="health1"></div>
+            </div>
+
+            <div class="health-text">
+                Health: <span id="healthText1">100</span>
+            </div>
+
+            <p>Poison: <span id="poison1">0</span>/3</p>
+        </div>
+
+        <div class="player" id="player2">
+            <h2>🔴 Player 2</h2>
+
+            <div class="health-bar">
+                <div class="health" id="health2"></div>
+            </div>
+
+            <div class="health-text">
+                Health: <span id="healthText2">100</span>
+            </div>
+
+            <p>Poison: <span id="poison2">0</span>/3</p>
+        </div>
+
+    </div>
+
+    <div id="turnText">
+        Player 1's Turn
+    </div>
+
+    <div class="drinks" id="drinks"></div>
+
+    <div class="status" id="status">
+        Choose a drink!
+    </div>
+
+    <button id="restart" onclick="restartGame()">
+        🔄 Play Again
+    </button>
+
+    <div class="rules">
+        <h3>🎮 How to Play</h3>
+        <p>
+            There are 10 drinks. 3 contain poison.
+            Choose a drink on your turn.
+            Drinking poison damages your health.
+            Get poisoned 3 times and you lose!
+        </p>
+    </div>
+
+</div>
+
+<script>
+
+let drinks = [];
+let currentPlayer = 1;
+
+let health = {
+    1: 100,
+    2: 100
+};
+
+let poisonCount = {
+    1: 0,
+    2: 0
+};
+
+let gameOver = false;
+
+const drinkEmojis = [
+    "🥤",
+    "🧃",
+    "🍹",
+    "🧋",
+    "🥛",
+    "🍸",
+    "🍵",
+    "☕",
+    "🧉",
+    "🍶"
+];
+
+function createGame() {
+
+    drinks = [];
+
+    // Create 10 drinks
+    for (let i = 0; i < 10; i++) {
+        drinks.push({
+            id: i,
+            poison: false,
+            used: false
+        });
+    }
+
+    // Randomly select exactly 3 poison drinks
+    let poisonPositions = [];
+
+    while (poisonPositions.length < 3) {
+
+        let random =
+            Math.floor(Math.random() * 10);
+
+        if (!poisonPositions.includes(random)) {
+            poisonPositions.push(random);
+            drinks[random].poison = true;
+        }
+    }
+
+    renderDrinks();
+}
+
+function renderDrinks() {
+
+    const container =
+        document.getElementById("drinks");
+
+    container.innerHTML = "";
+
+    drinks.forEach((drink, index) => {
+
+        const button =
+            document.createElement("button");
+
+        button.className = "drink";
+
+        button.id = "drink-" + index;
+
+        button.innerHTML = `
+            <span class="drink-number">
+                ${index + 1}
+            </span>
+            ${drinkEmojis[index]}
+        `;
+
+        button.onclick = function () {
+            chooseDrink(index);
+        };
+
+        container.appendChild(button);
+    });
+}
+
+function chooseDrink(index) {
+
+    if (gameOver) return;
+
+    const drink = drinks[index];
+
+    if (drink.used) {
+        return;
+    }
+
+    drink.used = true;
+
+    const button =
+        document.getElementById("drink-" + index);
+
+    button.classList.add("used");
+
+    if (drink.poison) {
+
+        poisonCount[currentPlayer]++;
+
+        // Damage
+        health[currentPlayer] -= 35;
+
+        if (health[currentPlayer] < 0) {
+            health[currentPlayer] = 0;
+        }
+
+        updatePlayer(currentPlayer);
+
+        document.getElementById("status").innerHTML =
+            `☠️ Player ${currentPlayer} drank POISON!`;
+
+        // Check if player got poisoned 3 times
+        if (poisonCount[currentPlayer] >= 3) {
+
+            endGame(currentPlayer);
+
+            return;
+        }
+
+    } else {
+
+        document.getElementById("status").innerHTML =
+            `😎 Player ${currentPlayer} got a safe drink!`;
+    }
+
+    // Check health
+    if (health[currentPlayer] <= 0) {
+
+        endGame(currentPlayer);
+
+        return;
+    }
+
+    // Switch player
+    switchPlayer();
+}
+
+function switchPlayer() {
+
+    currentPlayer =
+        currentPlayer === 1 ? 2 : 1;
+
+    document.getElementById("turnText").innerText =
+        `Player ${currentPlayer}'s Turn`;
+
+    document.getElementById("player1")
+        .classList.toggle(
+            "active",
+            currentPlayer === 1
+        );
+
+    document.getElementById("player2")
+        .classList.toggle(
+            "active",
+            currentPlayer === 2
+        );
+
+    // If all drinks are used
+    if (drinks.every(d => d.used)) {
+
+        endByRemainingHealth();
+
+    }
+}
+
+function updatePlayer(player) {
+
+    const healthBar =
+        document.getElementById("health" + player);
+
+    const healthText =
+        document.getElementById("healthText" + player);
+
+    const poisonText =
+        document.getElementById("poison" + player);
+
+    healthBar.style.width =
+        health[player] + "%";
+
+    healthText.innerText =
+        health[player];
+
+    poisonText.innerText =
+        poisonCount[player];
+
+    // Change health bar based on health
+    if (health[player] <= 30) {
+        healthBar.style.background = "#ef4444";
+    }
+    else if (health[player] <= 60) {
+        healthBar.style.background = "#facc15";
+    }
+    else {
+        healthBar.style.background = "#22c55e";
+    }
+}
+
+function endGame(loser) {
+
+    gameOver = true;
+
+    const winner =
+        loser === 1 ? 2 : 1;
+
+    document.getElementById("turnText").innerHTML =
+        `🏆 Player ${winner} WINS!`;
+
+    document.getElementById("status").innerHTML =
+        `💀 Player ${loser} was eliminated!`;
+
+    document.getElementById("restart").style.display =
+        "block";
+
+    disableAllDrinks();
+}
+
+function endByRemainingHealth() {
+
+    gameOver = true;
+
+    let winner;
+
+    if (health[1] > health[2]) {
+        winner = 1;
+    }
+    else if (health[2] > health[1]) {
+        winner = 2;
+    }
+    else {
+        document.getElementById("turnText").innerHTML =
+            "🤝 DRAW!";
+
+        document.getElementById("status").innerHTML =
+            "Both players survived with the same health!";
+
+        document.getElementById("restart").style.display =
+            "block";
+
+        return;
+    }
+
+    document.getElementById("turnText").innerHTML =
+        `🏆 Player ${winner} WINS!`;
+
+    document.getElementById("status").innerHTML =
+        `All drinks were used!`;
+
+    document.getElementById("restart").style.display =
+        "block";
+}
+
+function disableAllDrinks() {
+
+    document.querySelectorAll(".drink")
+        .forEach(button => {
+            button.classList.add("used");
+        });
+}
+
+function restartGame() {
+
+    health = {
+        1: 100,
+        2: 100
+    };
+
+    poisonCount = {
+        1: 0,
+        2: 0
+    };
+
+    currentPlayer = 1;
+
+    gameOver = false;
+
+    document.getElementById("turnText").innerText =
+        "Player 1's Turn";
+
+    document.getElementById("status").innerText =
+        "Choose a drink!";
+
+    document.getElementById("restart").style.display =
+        "none";
+
+    document.getElementById("player1")
+        .classList.add("active");
+
+    document.getElementById("player2")
+        .classList.remove("active");
+
+    updatePlayer(1);
+    updatePlayer(2);
+
+    createGame();
+}
+
+// Start game
+updatePlayer(1);
+updatePlayer(2);
+createGame();
+
+</script>
+
+</body>
+</html>
