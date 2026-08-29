@@ -3,185 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>My Game Arcade</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #101522;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f1522;
             color: white;
-            text-align: center;
         }
 
         header {
-            padding: 50px 20px 30px;
+            text-align: center;
+            padding: 35px 20px 20px;
         }
 
-        h1 {
-            font-size: 50px;
+        header h1 {
             margin: 0;
+            font-size: 42px;
         }
 
         header p {
-            color: #bbb;
+            color: #b9c1d0;
             font-size: 18px;
+            margin-top: 10px;
         }
 
-        .games {
-            display: grid;
-            grid-template-columns: repeat(
-                auto-fit,
-                minmax(230px, 1fr)
-            );
-
-            gap: 25px;
-
+        .games-container {
+            width: 90%;
             max-width: 1100px;
+            margin: 25px auto 60px;
 
-            margin: auto;
-
-            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
         }
 
-        .game {
-            background: #1d2638;
+        /* THE WHOLE CARD IS CLICKABLE */
+        .game-card {
+            display: block;
+            text-decoration: none;
+            color: white;
 
+            background: #1d293d;
             border-radius: 18px;
+            padding: 30px 20px;
 
-            padding: 30px;
+            min-height: 330px;
 
-            box-shadow:
-                0 10px 25px rgba(0,0,0,0.4);
+            text-align: center;
+
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease,
+                box-shadow 0.2s ease;
         }
 
-        .icon {
-            font-size: 60px;
+        .game-card:hover {
+            transform: translateY(-8px);
+            background: #26344c;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
         }
 
-        h2 {
-            margin: 15px 0 10px;
-        }
+        .game-icon {
+            width: 150px;
+            height: 150px;
 
-        .game p {
-            color: #aaa;
-            min-height: 40px;
-        }
+            margin: 0 auto 18px;
 
-        .play {
-            display: inline-block;
-
-            margin-top: 15px;
-
-            padding: 12px 30px;
+            border-radius: 12px;
 
             background: #ffb52e;
 
-            color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-            text-decoration: none;
-
-            font-weight: bold;
-
-            border-radius: 10px;
+            font-size: 70px;
         }
 
-        .play:hover {
-            background: #ffd166;
+        .game-card h2 {
+            margin: 10px 0;
+            font-size: 26px;
+        }
+
+        .game-card p {
+            margin: 0 auto 25px;
+            color: #b9c1d0;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .play-button {
+            display: inline-block;
+
+            background: #ffb52e;
+            color: #111827;
+
+            padding: 12px 28px;
+
+            border-radius: 10px;
+
+            font-weight: bold;
+            font-size: 16px;
+
+            transition: background 0.2s ease;
+        }
+
+        .game-card:hover .play-button {
+            background: #ffc65a;
         }
 
         footer {
-            padding: 30px;
+            text-align: center;
+            padding: 25px;
+            color: #7f8ba0;
+            font-size: 14px;
+        }
 
-            color: #777;
+        /* TABLET */
+        @media (max-width: 850px) {
+            .games-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            header h1 {
+                font-size: 34px;
+            }
+        }
+
+        /* PHONE */
+        @media (max-width: 550px) {
+            .games-container {
+                grid-template-columns: 1fr;
+                width: 90%;
+            }
+
+            header h1 {
+                font-size: 30px;
+            }
+
+            .game-card {
+                min-height: 310px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-<header>
-
-    <h1>🎮 My Game Arcade</h1>
-
-    <p>Choose a game and start playing!</p>
-
-</header>
+    <header>
+        <h1>🎮 My Game Arcade</h1>
+        <p>Play games here for free!</p>
+    </header>
 
 
-<div class="games">
+    <main class="games-container">
 
-    <div class="game">
-        <div class="icon">🚗</div>
-        <h2>Game 1</h2>
-        <p>Drive around and explore.</p>
+        <!-- GAME 1 -->
+        <a class="game-card" href="games/game1.html">
 
-        <a class="play" href="games/game1.html"
-            PLAY
+            <div class="game-icon">
+                🚗
+            </div>
+
+            <h2>Game 1</h2>
+
+            <p>
+                Drive around and explore.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
 
-    <div class="game">
-        <div class="icon">🏎️</div>
-        <h2>Game 2</h2>
-        <p>Race your way to victory.</p>
+        <!-- GAME 2 -->
+        <a class="game-card" href="games/game2.html">
 
-        <a class="play" href="games/game2.html"
-            PLAY
+            <div class="game-icon">
+                🏎️
+            </div>
+
+            <h2>Game 2</h2>
+
+            <p>
+                Race your way to victory.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
 
-    <div class="game">
-        <div class="icon">🌆</div>
-        <h2>Game 3</h2>
-        <p>Explore the city.</p>
+        <!-- GAME 3 -->
+        <a class="game-card" href="games/game3.html">
 
-        <a class="play" href="games/game3.html"
-            PLAY
+            <div class="game-icon">
+                🏙️
+            </div>
+
+            <h2>Game 3</h2>
+
+            <p>
+                Explore the city.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
 
-    <div class="game">
-        <div class="icon">🎯</div>
-        <h2>Game 4</h2>
-        <p>Enter the action.</p>
+        <!-- GAME 4 -->
+        <a class="game-card" href="games/game4.html">
 
-        <a class="play" href="games/game4.html"
-            PLAY
+            <div class="game-icon">
+                🎯
+            </div>
+
+            <h2>Game 4</h2>
+
+            <p>
+                Enter the action.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
 
-    <div class="game">
-        <div class="icon">👥</div>
-        <h2>Game 5</h2>
-        <p>Play a 2-player game.</p>
+        <!-- GAME 5 -->
+        <a class="game-card" href="games/game5.html">
 
-        <a class="play" href="games/game5.html"
-            PLAY
+            <div class="game-icon">
+                ⚔️
+            </div>
+
+            <h2>Game 5</h2>
+
+            <p>
+                Challenge your opponent.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
 
-    <div class="game">
-        <div class="icon">🧱</div>
-        <h2>Game 6</h2>
-        <p>Play the 3D Jenga challenge.</p>
+        <!-- GAME 6 -->
+        <a class="game-card" href="games/game6.html">
 
-        <a class="play" href="games/game6.html"
-            PLAY
+            <div class="game-icon">
+                🧱
+            </div>
+
+            <h2>Game 6</h2>
+
+            <p>
+                Build, balance and play.
+            </p>
+
+            <span class="play-button">
+                PLAY
+            </span>
+
         </a>
-    </div>
 
-</div>
+    </main>
 
 
-<footer>
-    My Game Arcade © 2026
-</footer>
+    <footer>
+        © 2026 My Game Arcade
+    </footer>
 
 </body>
 </html>
