@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Highway Racer</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 12px;
+        }
+
+        #score {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        #game {
+            width: 420px;
+            height: 650px;
+            margin: auto;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid white;
+            background: #555;
+        }
+
+        /* Road */
+        #road {
+            position: absolute;
+            width: 300px;
+            height: 100%;
+            left: 60px;
+            background: #333;
+        }
+
+        /* Road lane lines */
+        .line {
+            position: absolute;
+            width: 8px;
+            height: 80px;
+            background: white;
+            left: 96px;
+        }
+
+        .line2 {
+            position: absolute;
+            width: 8px;
+            height: 80px;
+            background: white;
+            left: 196px;
+        }
+
+        /* Player */
+        #player {
+            position: absolute;
+            width: 50px;
+            height: 90px;
+            bottom: 30px;
+            left: 185px;
+            background: dodgerblue;
+            border-radius: 10px;
+            border: 3px solid white;
+            z-index: 5;
+        }
+
+        #player::before {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 35px;
+            background: lightblue;
+            left: 7px;
+            top: 10px;
+            border-radius: 5px;
+        }
+
+        /* Traffic cars */
+        .car {
+            position: absolute;
+            width: 50px;
+            height: 90px;
+            background: red;
+            border-radius: 10px;
+            border: 3px solid white;
+            z-index: 4;
+        }
+
+        .car::before {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 35px;
+            background: #222;
+            left: 7px;
+            top: 10px;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #message {
+            font-size: 25px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🏎️ Highway Racer</h1>
+
+    <div id="score">Score: 0</div>
+
+    <div id="game">
+
+        <div id="road"></div>
+
+        <div class="line" style="top: 0;"></div>
+        <div class="line" style="top: 160px;"></div>
+        <div class="line" style="top: 320px;"></div>
+        <div class="line" style="top: 480px;"></div>
+
+        <div class="line2" style="top: 0;"></div>
+        <div class="line2" style="top: 160px;"></div>
+        <div class="line2" style="top: 320px;"></div>
+        <div class="line2" style="top: 480px;"></div>
+
+        <div id="player"></div>
+
+    </div>
+
+    <div id="message"></div>
+
+    <button onclick="startGame()">Start / Restart</button>
+
+    <p>⬅️ ➡️ Use the arrow keys to change lanes</p>
+
+    <script>
+
+        const player = document.getElementById("player");
+        const game = document.getElementById("game");
+        const scoreText = document.getElementById("score");
+        const message = document.getElementById("message");
+
+        let playerX = 185;
+        let cars = [];
+        let score = 0;
+        let speed = 5;
+        let running = false;
+
+        const lanes = [85, 185, 285];
+
+        document.addEventListener("keydown", function(event) {
+
+            if (!running) return;
+
+            if (event.key === "ArrowLeft") {
+
+                let currentLane = lanes.indexOf(playerX);
+
+                if (currentLane > 0) {
+                    playerX = lanes[currentLane - 1];
+                    player.style.left = playerX + "px";
+                }
+            }
+
+            if (event.key === "ArrowRight") {
+
+                let currentLane = lanes.indexOf(playerX);
+
+                if (currentLane < lanes.length - 1) {
+                    playerX = lanes[currentLane + 1];
+                    player.style.left = playerX + "px";
+                }
+            }
+        });
+
+        function startGame() {
+
+            cars.forEach(car => car.remove());
+
+            cars = [];
+
+            score = 0;
+            speed = 5;
+            playerX = 185;
+
+            player.style.left = playerX + "px";
+
+            scoreText.textContent = "Score: 0";
+            message.textContent = "";
+
+            running = true;
+
+            createCar();
+
+            gameLoop();
+        }
+
+        function createCar() {
+
+            if (!running) return;
+
+            const car = document.createElement("div");
+
+            car.classList.add("car");
+
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+
+            car.style.left = lane + "px";
+            car.style.top = "-100px";
+
+            game.appendChild(car);
+
+            cars.push(car);
+
+            setTimeout(createCar, Math.max(450, 1000 - score * 5));
+        }
+
+        function gameLoop() {
+
+            if (!running) return;
+
+            cars.forEach((car, index) => {
+
+                let top = parseInt(car.style.top);
+
+                top += speed;
+
+                car.style.top = top + "px";
+
+                const carX = parseInt(car.style.left);
+
+                const playerY = 530;
+
+                if (
+                    top < playerY + 90 &&
+                    top + 90 > playerY &&
+                    carX < playerX + 50 &&
+                    carX + 50 > playerX
+                ) {
+
+                    gameOver();
+                }
+
+                if (top > 650) {
+
+                    car.remove();
+
+                    cars.splice(index, 1);
+
+                    score++;
+
+                    scoreText.textContent = "Score: " + score;
+
+                    if (score % 10 === 0) {
+                        speed += 0.5;
+                    }
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+
+            running = false;
+
+            message.textContent = "💥 GAME OVER! Score: " + score;
+        }
+
+    </script>
+
+</body>
+</html>

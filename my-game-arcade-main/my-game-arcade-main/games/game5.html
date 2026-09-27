@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Two Player Arena</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #111;
+            font-family: Arial, sans-serif;
+        }
+
+        #ui {
+            position: fixed;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            z-index: 20;
+
+            display: flex;
+            justify-content: space-between;
+
+            padding: 0 25px;
+
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px black;
+        }
+
+        .playerUI {
+            width: 250px;
+            font-size: 20px;
+        }
+
+        .bar {
+            width: 220px;
+            height: 22px;
+            background: #333;
+            border: 2px solid white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .health {
+            height: 100%;
+            width: 100%;
+        }
+
+        #health1 {
+            background: #168cff;
+        }
+
+        #health2 {
+            background: #ff3333;
+        }
+
+        #message {
+            position: fixed;
+            top: 45%;
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            z-index: 30;
+
+            color: white;
+            text-align: center;
+
+            font-size: 45px;
+            font-weight: bold;
+
+            text-shadow: 3px 3px 6px black;
+
+            display: none;
+        }
+
+        #restart {
+            margin-top: 20px;
+
+            padding: 14px 30px;
+
+            font-size: 20px;
+            font-weight: bold;
+
+            border: none;
+            border-radius: 10px;
+
+            cursor: pointer;
+        }
+
+        #help {
+            position: fixed;
+
+            bottom: 15px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            z-index: 20;
+
+            color: white;
+
+            text-align: center;
+
+            font-size: 15px;
+
+            text-shadow: 2px 2px 4px black;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- PLAYER UI -->
+
+    <div id="ui">
+
+        <div class="playerUI">
+
+            🔵 PLAYER 1
+
+            <div class="bar">
+                <div
+                    id="health1"
+                    class="health">
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="playerUI" style="text-align:right;">
+
+            🔴 PLAYER 2
+
+            <div
+                class="bar"
+                style="margin-left:auto;">
+
+                <div
+                    id="health2"
+                    class="health">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- WINNER -->
+
+    <div id="message">
+
+        <span id="winner">
+        </span>
+
+        <br>
+
+        <button id="restart">
+            REMATCH
+        </button>
+
+    </div>
+
+
+    <!-- CONTROLS -->
+
+    <div id="help">
+
+        🔵 P1:
+        W A S D = Move |
+        F = Blaster
+
+        &nbsp;&nbsp;&nbsp;
+
+        🔴 P2:
+        Arrow Keys = Move |
+        / = Blaster
+
+    </div>
+
+
+    <!-- THREE.JS -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+
+    <script>
+
+        // =========================================
+        // SCENE
+        // =========================================
+
+        const scene =
+            new THREE.Scene();
+
+        scene.background =
+            new THREE.Color(
+                0x101827
+            );
+
+        scene.fog =
+            new THREE.Fog(
+                0x101827,
+                30,
+                130
+            );
+
+
+        // =========================================
+        // CAMERA
+        // =========================================
+
+        const camera =
+            new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth /
+                window.innerHeight,
+                0.1,
+                300
+            );
+
+        camera.position.set(
+            0,
+            35,
+            35
+        );
+
+        camera.lookAt(
+            0,
+            0,
+            0
+        );
+
+
+        // =========================================
+        // RENDERER
+        // =========================================
+
+        const renderer =
+            new THREE.WebGLRenderer({
+                antialias: true
+            });
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+
+        document.body.appendChild(
+            renderer.domElement
+        );
+
+
+        // =========================================
+        // LIGHTING
+        // =========================================
+
+        const ambient =
+            new THREE.AmbientLight(
+                0xffffff,
+                1.4
+            );
+
+        scene.add(
+            ambient
+        );
+
+
+        const light =
+            new THREE.DirectionalLight(
+                0xffffff,
+                2
+            );
+
+        light.position.set(
+            20,
+            40,
+            20
+        );
+
+        scene.add(
+            light
+        );
+
+
+        // =========================================
+        // ARENA FLOOR
+        // =========================================
+
+        const floor =
+            new THREE.Mesh(
+
+                new THREE.PlaneGeometry(
+                    100,
+                    100
+                ),
+
+                new THREE.MeshStandardMaterial({
+                    color: 0x303744
+                })
+
+            );
+
+        floor.rotation.x =
+            -Math.PI / 2;
+
+        scene.add(
+            floor
+        );
+
+
+        // =========================================
+        // ARENA WALLS
+        // =========================================
+
+        function wall(
+            x,
+            z,
+            width,
+            depth
+        ) {
+
+            const object =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        width,
+                        5,
+                        depth
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+                        color: 0x596273
+                    })
+
+                );
+
+            object.position.set(
+                x,
+                2.5,
+                z
+            );
+
+            scene.add(
+                object
+            );
+        }
+
+
+        wall(
+            0,
+            -50,
+            100,
+            2
+        );
+
+        wall(
+            0,
+            50,
+            100,
+            2
+        );
+
+        wall(
+            -50,
+            0,
+            2,
+            100
+        );
+
+        wall(
+            50,
+            0,
+            2,
+            100
+        );
+
+
+        // =========================================
+        // COVER
+        // =========================================
+
+        function cover(
+            x,
+            z
+        ) {
+
+            const box =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        7,
+                        4,
+                        7
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+                        color: 0x6b7280
+                    })
+
+                );
+
+            box.position.set(
+                x,
+                2,
+                z
+            );
+
+            scene.add(
+                box
+            );
+        }
+
+
+        cover(
+            -18,
+            -15
+        );
+
+        cover(
+            18,
+            -15
+        );
+
+        cover(
+            -18,
+            15
+        );
+
+        cover(
+            18,
+            15
+        );
+
+        cover(
+            0,
+            0
+        );
+
+
+        // =========================================
+        // PLAYER CREATOR
+        // =========================================
+
+        function createPlayer(
+            color
+        ) {
+
+            const player =
+                new THREE.Group();
+
+
+            // Body
+
+            const body =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        2,
+                        2.5,
+                        1.5
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+                        color: color
+                    })
+
+                );
+
+            body.position.y =
+                1.25;
+
+            player.add(
+                body
+            );
+
+
+            // Head
+
+            const head =
+                new THREE.Mesh(
+
+                    new THREE.SphereGeometry(
+                        0.7,
+                        16,
+                        16
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+                        color: 0xf1c7a5
+                    })
+
+                );
+
+            head.position.y =
+                3;
+
+            player.add(
+                head
+            );
+
+
+            // Blaster
+
+            const blaster =
+                new THREE.Mesh(
+
+                    new THREE.BoxGeometry(
+                        0.4,
+                        0.4,
+                        1.6
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+                        color: 0x222222
+                    })
+
+                );
+
+            blaster.position.set(
+                0.9,
+                1.5,
+                -0.8
+            );
+
+            player.add(
+                blaster
+            );
+
+
+            return player;
+        }
+
+
+        // =========================================
+        // PLAYERS
+        // =========================================
+
+        const player1 =
+            createPlayer(
+                0x168cff
+            );
+
+        player1.position.set(
+            -25,
+            0,
+            0
+        );
+
+        scene.add(
+            player1
+        );
+
+
+        const player2 =
+            createPlayer(
+                0xff3333
+            );
+
+        player2.position.set(
+            25,
+            0,
+            0
+        );
+
+        scene.add(
+            player2
+        );
+
+
+        // =========================================
+        // GAME VARIABLES
+        // =========================================
+
+        let health1 =
+            100;
+
+        let health2 =
+            100;
+
+        let running =
+            true;
+
+        let keys = {};
+
+
+        // =========================================
+        // UI
+        // =========================================
+
+        const healthBar1 =
+            document.getElementById(
+                "health1"
+            );
+
+        const healthBar2 =
+            document.getElementById(
+                "health2"
+            );
+
+        const message =
+            document.getElementById(
+                "message"
+            );
+
+        const winnerText =
+            document.getElementById(
+                "winner"
+            );
+
+        const restart =
+            document.getElementById(
+                "restart"
+            );
+
+
+        // =========================================
+        // KEYBOARD
+        // =========================================
+
+        document.addEventListener(
+            "keydown",
+            function(event) {
+
+                keys[event.key.toLowerCase()] =
+                    true;
+
+                keys[event.code] =
+                    true;
+
+            }
+        );
+
+
+        document.addEventListener(
+            "keyup",
+            function(event) {
+
+                keys[event.key.toLowerCase()] =
+                    false;
+
+                keys[event.code] =
+                    false;
+
+            }
+        );
+
+
+        // =========================================
+        // PROJECTILES
+        // =========================================
+
+        const projectiles =
+            [];
+
+
+        function shoot(
+            player,
+            target,
+            color
+        ) {
+
+            if (!running)
+                return;
+
+
+            const projectile =
+                new THREE.Mesh(
+
+                    new THREE.SphereGeometry(
+                        0.25,
+                        12,
+                        12
+                    ),
+
+                    new THREE.MeshBasicMaterial({
+                        color: color
+                    })
+
+                );
+
+
+            projectile.position.copy(
+                player.position
+            );
+
+            projectile.position.y =
+                1.7;
+
+
+            const direction =
+                new THREE.Vector3();
+
+            direction.subVectors(
+                target.position,
+                player.position
+            );
+
+            direction.y = 0;
+
+            direction.normalize();
+
+
+            projectile.userData.velocity =
+                direction.multiplyScalar(
+                    0.8
+                );
+
+
+            projectile.userData.owner =
+                player;
+
+
+            scene.add(
+                projectile
+            );
+
+            projectiles.push(
+                projectile
+            );
+
+        }
+
+
+        // =========================================
+        // SHOOT COOLDOWNS
+        // =========================================
+
+        let lastShot1 =
+            0;
+
+        let lastShot2 =
+            0;
+
+
+        // =========================================
+        // PLAYER MOVEMENT
+        // =========================================
+
+        function movePlayers() {
+
+            // PLAYER 1
+
+            if (keys["w"])
+                player1.position.z -= 0.25;
+
+            if (keys["s"])
+                player1.position.z += 0.25;
+
+            if (keys["a"])
+                player1.position.x -= 0.25;
+
+            if (keys["d"])
+                player1.position.x += 0.25;
+
+
+            // PLAYER 2
+
+            if (keys["ArrowUp"])
+                player2.position.z -= 0.25;
+
+            if (keys["ArrowDown"])
+                player2.position.z += 0.25;
+
+            if (keys["ArrowLeft"])
+                player2.position.x -= 0.25;
+
+            if (keys["ArrowRight"])
+                player2.position.x += 0.25;
+
+
+            // Boundaries
+
+            player1.position.x =
+                Math.max(
+                    -47,
+                    Math.min(
+                        47,
+                        player1.position.x
+                    )
+                );
+
+            player1.position.z =
+                Math.max(
+                    -47,
+                    Math.min(
+                        47,
+                        player1.position.z
+                    )
+                );
+
+
+            player2.position.x =
+                Math.max(
+                    -47,
+                    Math.min(
+                        47,
+                        player2.position.x
+                    )
+                );
+
+            player2.position.z =
+                Math.max(
+                    -47,
+                    Math.min(
+                        47,
+                        player2.position.z
+                    )
+                );
+
+
+            // Face opponent
+
+            player1.lookAt(
+                player2.position.x,
+                player1.position.y,
+                player2.position.z
+            );
+
+            player2.lookAt(
+                player1.position.x,
+                player2.position.y,
+                player1.position.z
+            );
+
+        }
+
+
+        // =========================================
+        // SHOOTING CONTROLS
+        // =========================================
+
+        function handleShooting() {
+
+            const now =
+                performance.now();
+
+
+            // Player 1 - F
+
+            if (
+                keys["f"] &&
+                now - lastShot1 > 350
+            ) {
+
+                shoot(
+                    player1,
+                    player2,
+                    0x00ccff
+                );
+
+                lastShot1 =
+                    now;
+            }
+
+
+            // Player 2 - /
+
+            if (
+                (
+                    keys["/"] ||
+                    keys["NumpadDivide"]
+                ) &&
+                now - lastShot2 > 350
+            ) {
+
+                shoot(
+                    player2,
+                    player1,
+                    0xff3366
+                );
+
+                lastShot2 =
+                    now;
+            }
+
+        }
+
+
+        // =========================================
+        // PROJECTILE UPDATE
+        // =========================================
+
+        function updateProjectiles() {
+
+            for (
+                let i =
+                    projectiles.length - 1;
+                i >= 0;
+                i--
+            ) {
+
+                const projectile =
+                    projectiles[i];
+
+
+                projectile.position.add(
+                    projectile.userData.velocity
+                );
+
+
+                const owner =
+                    projectile.userData.owner;
+
+
+                const target =
+                    owner === player1
+                        ? player2
+                        : player1;
+
+
+                const distance =
+                    projectile.position.distanceTo(
+                        target.position
+                    );
+
+
+                // Hit
+
+                if (
+                    distance < 2
+                ) {
+
+                    if (
+                        target === player1
+                    ) {
+
+                        health1 -=
+                            10;
+
+                    } else {
+
+                        health2 -=
+                            10;
+
+                    }
+
+
+                    scene.remove(
+                        projectile
+                    );
+
+                    projectiles.splice(
+                        i,
+                        1
+                    );
+
+
+                    updateHealth();
+
+
+                    if (
+                        health1 <= 0 ||
+                        health2 <= 0
+                    ) {
+
+                        endGame();
+
+                    }
+
+
+                    continue;
+                }
+
+
+                // Remove distant projectiles
+
+                if (
+                    Math.abs(
+                        projectile.position.x
+                    ) > 70 ||
+                    Math.abs(
+                        projectile.position.z
+                    ) > 70
+                ) {
+
+                    scene.remove(
+                        projectile
+                    );
+
+                    projectiles.splice(
+                        i,
+                        1
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        // =========================================
+        // HEALTH
+        // =========================================
+
+        function updateHealth() {
+
+            healthBar1.style.width =
+                Math.max(
+                    0,
+                    health1
+                ) + "%";
+
+
+            healthBar2.style.width =
+                Math.max(
+                    0,
+                    health2
+                ) + "%";
+
+        }
+
+
+        // =========================================
+        // END GAME
+        // =========================================
+
+        function endGame() {
+
+            running =
+                false;
+
+
+            if (
+                health1 <= 0
+            ) {
+
+                winnerText.textContent =
+                    "🔴 PLAYER 2 WINS!";
+
+            } else {
+
+                winnerText.textContent =
+                    "🔵 PLAYER 1 WINS!";
+
+            }
+
+
+            message.style.display =
+                "block";
+
+        }
+
+
+        // =========================================
+        // RESTART
+        // =========================================
+
+        restart.onclick =
+            function() {
+
+                health1 =
+                    100;
+
+                health2 =
+                    100;
+
+
+                player1.position.set(
+                    -25,
+                    0,
+                    0
+                );
+
+                player2.position.set(
+                    25,
+                    0,
+                    0
+                );
+
+
+                projectiles.forEach(
+                    projectile =>
+                        scene.remove(
+                            projectile
+                        )
+                );
+
+                projectiles.length =
+                    0;
+
+
+                updateHealth();
+
+
+                message.style.display =
+                    "none";
+
+
+                running =
+                    true;
+
+            };
+
+
+        // =========================================
+        // CAMERA
+        // =========================================
+
+        function updateCamera() {
+
+            const center =
+                new THREE.Vector3();
+
+            center.addVectors(
+                player1.position,
+                player2.position
+            );
+
+            center.multiplyScalar(
+                0.5
+            );
+
+
+            camera.position.x +=
+                (
+                    center.x -
+                    camera.position.x
+                ) * 0.03;
+
+
+            camera.position.z +=
+                (
+                    center.z + 35 -
+                    camera.position.z
+                ) * 0.03;
+
+
+            camera.lookAt(
+                center.x,
+                0,
+                center.z
+            );
+
+        }
+
+
+        // =========================================
+        // GAME LOOP
+        // =========================================
+
+        function animate() {
+
+            requestAnimationFrame(
+                animate
+            );
+
+
+            if (running) {
+
+                movePlayers();
+
+                handleShooting();
+
+                updateProjectiles();
+
+                updateCamera();
+
+            }
+
+
+            renderer.render(
+                scene,
+                camera
+            );
+
+        }
+
+
+        // =========================================
+        // RESIZE
+        // =========================================
+
+        window.addEventListener(
+            "resize",
+            function() {
+
+                camera.aspect =
+                    window.innerWidth /
+                    window.innerHeight;
+
+                camera.updateProjectionMatrix();
+
+
+                renderer.setSize(
+                    window.innerWidth,
+                    window.innerHeight
+                );
+
+            }
+        );
+
+
+        // =========================================
+        // START
+        // =========================================
+
+        updateHealth();
+
+        animate();
+
+    </script>
+
+</body>
+</html>
